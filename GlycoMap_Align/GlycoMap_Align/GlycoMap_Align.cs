@@ -11,6 +11,7 @@ namespace GlycoMap_Align
     public partial class GlycoMap_Align : Form
     {
         private List<GlycoRecord> refc, targ, merg;
+        private String refloc, targloc;
         private Dictionary<double, List<GlycoRecord>> refc_buck, targ_buck;
         private List<double> keys;
         private List<List<double>> score, matrix;
@@ -19,10 +20,60 @@ namespace GlycoMap_Align
         public GlycoMap_Align()
         {
             InitializeComponent();
+        }
 
-            Utilities.parseDB();
-            String refloc = "database.xml";
-            String targloc = "F:\\Dropbox\\IUB\\Courses\\Capstone\\Stuff\\Scripts\\pooledtargetediii_map_glycopeptides.xml";
+        private void GlycoMap_Align_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openFileDialog1.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                targloc = openFileDialog1.FileName;
+                Console.WriteLine(targloc);
+                textBox1.Text = targloc;
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openFileDialog2.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                refloc = openFileDialog2.FileName;
+                Console.WriteLine(refloc);
+                textBox2.Text = refloc;
+            }
+        }
+
+        private void radioButton1_CheckedChanged_1(object sender, EventArgs e)
+        {
+            if (radioButton1.Checked)
+            {
+                textBox2.Enabled = true;
+                button2.Enabled = true;
+            }
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton2.Checked)
+            {
+                textBox2.Enabled = false;
+                button2.Enabled = false;
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (radioButton2.Checked)
+            {
+                Utilities.parseDB();
+                refloc = "database.xml";
+            }
 
             ParseXML reference = new ParseXML(refloc);
             ParseXML target = new ParseXML(targloc);
