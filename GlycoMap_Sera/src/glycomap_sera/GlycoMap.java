@@ -989,21 +989,14 @@ public class GlycoMap extends Applet implements MouseListener, MouseMotionListen
     @Override
     public final void init()
     {
-        try
+        new Runnable()
         {
-            java.awt.EventQueue.invokeAndWait(new Runnable()
+            @Override
+            public void run()
             {
-                @Override
-                public void run()
-                {
-                    initComponents();
-                }
-            });
-        }
-        catch(InterruptedException | InvocationTargetException  ex)
-        {
-            ex.printStackTrace();
-        }
+                initComponents();
+            }
+        };
     }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">                                                    
