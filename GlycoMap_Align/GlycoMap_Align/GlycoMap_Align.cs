@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using ZedGraph;
 
 namespace GlycoMap_Align
 {
@@ -14,12 +15,18 @@ namespace GlycoMap_Align
         private String refloc, targloc;
         private Dictionary<double, List<GlycoRecord>> refc_buck, targ_buck;
         private List<double> keys;
-        private List<List<double>> score, matrix;
+        private Dictionary<double, int> maserr, neterr;
+        private List<List<double>> score;
         private List<List<int>> traceback;
+        private double maxscore, minscore;
+        private ZedGraphControl graph1, graph2, graph3, graph4;
 
         public GlycoMap_Align()
         {
+            GlobalVar.setGradient();
             InitializeComponent();
+            tabControl1.TabPages.Remove(tabPage2);
+            tabControl1.TabPages.Remove(tabPage3);
         }
 
         private void GlycoMap_Align_Load(object sender, EventArgs e)
@@ -69,6 +76,7 @@ namespace GlycoMap_Align
 
         private void button3_Click(object sender, EventArgs e)
         {
+            tabControl1.Cursor = Cursors.WaitCursor;
             if (radioButton2.Checked)
             {
                 Utilities.parseDB();
@@ -82,16 +90,119 @@ namespace GlycoMap_Align
 
             Align aln = new Align(refc, targ);
             keys = aln.getKeys();
+            maserr = aln.getMaserr();
+            neterr = aln.getNeterr();
             refc_buck = aln.getRefcBuck();
             targ_buck = aln.getTargBuck();
             score = aln.getScore();
-            matrix = aln.getMatrix();
             traceback = aln.getTraceback();
+            maxscore = aln.getMaxscore();
+            minscore = aln.getMinscore();
 
             Merge mrg = new Merge(keys, refc_buck, targ_buck, traceback);
             merg = mrg.getMergMap();
 
             new WriteXML(merg);
+
+            graph1 = new ZedGraphControl();
+            graph1.Dock = DockStyle.Fill;
+            graph1.GraphPane.CurveList.Clear();
+            graph1.GraphPane.Title.Text = "Mass-Error Distribution";
+            graph1.GraphPane.XAxis.Title.Text = "Mass-Error (PPM)";
+            graph1.GraphPane.YAxis.Title.Text = "Frequency";
+            graph1.GraphPane.XAxis.Scale.Min = -GlobalVar.TOLMAS * 1000000;
+            graph1.GraphPane.XAxis.Scale.Max = GlobalVar.TOLMAS * 1000000;
+            graph1.GraphPane.YAxis.Scale.Min = 0;
+            graph1.GraphPane.YAxis.Scale.Max = merg.Count + 50;
+            graph1.GraphPane.XAxis.Scale.MajorStep = 1;
+            graph1.GraphPane.XAxis.Scale.MinorStep = 0.25;
+            graph1.GraphPane.YAxis.Scale.MinorStep = 10;
+            graph1.GraphPane.YAxis.Scale.MajorStep = 50;
+            for (double i = (-GlobalVar.TOLMAS * 1000000); i < ((GlobalVar.TOLMAS * 1000000) - 0.25); i += 0.25)
+            {
+                BoxObj box = new BoxObj(i, maserr[Math.Round(i, 3)], 0.25, maserr[Math.Round(i, 3)], Color.Black, Color.Red);
+                box.IsClippedToChartRect = true;
+                graph1.GraphPane.GraphObjList.Add(box);
+            }
+            graph1.Invalidate();
+            graph1.Refresh();
+            panel1.Controls.Add(graph1);
+
+            graph2 = new ZedGraphControl();
+            graph2.Dock = DockStyle.Fill;
+            graph2.GraphPane.CurveList.Clear();
+            graph2.GraphPane.Title.Text = "NET-Error Distribution";
+            graph2.GraphPane.XAxis.Title.Text = "NET-Error (%)";
+            graph2.GraphPane.YAxis.Title.Text = "Frequency";
+            graph2.GraphPane.XAxis.Scale.Min = -GlobalVar.TOLNET * 100;
+            graph2.GraphPane.XAxis.Scale.Max = GlobalVar.TOLNET * 100;
+            graph2.GraphPane.XAxis.Scale.MinorStep = 0.1;
+            graph2.GraphPane.XAxis.Scale.MajorStep = 0.2;
+            graph2.GraphPane.YAxis.Scale.Min = 0;
+            graph2.GraphPane.YAxis.Scale.Max = merg.Count + 50;
+            graph2.GraphPane.YAxis.Scale.MinorStep = 10;
+            graph2.GraphPane.YAxis.Scale.MajorStep = 50;
+            for (double i = (-GlobalVar.TOLNET * 100); i < ((GlobalVar.TOLNET * 100) - 0.1); i += 0.1)
+            {
+                BoxObj box = new BoxObj(i, neterr[Math.Round(i, 1)], 0.1, neterr[Math.Round(i, 1)], Color.Black, Color.Red);
+                box.IsClippedToChartRect = true;
+                graph2.GraphPane.GraphObjList.Add(box);
+            }
+            graph2.Invalidate();
+            graph2.Refresh();
+            panel2.Controls.Add(graph2);
+
+            graph3 = new ZedGraph.ZedGraphControl();
+            graph3.Dock = DockStyle.Fill;
+            graph3.GraphPane.CurveList.Clear();
+            graph3.GraphPane.Title.Text = "Scoring Heat Map";
+            graph3.GraphPane.XAxis.Title.Text = "Reference GlycoMap";
+            graph3.GraphPane.YAxis.Title.Text = "Target GlycoMap";
+            graph3.GraphPane.XAxis.Scale.Min = 0;
+            graph3.GraphPane.XAxis.Scale.Max = 1;
+            graph3.GraphPane.XAxis.Scale.MinorStep = GlobalVar.BIN;
+            graph3.GraphPane.XAxis.Scale.MajorStep = GlobalVar.BIN * 2;
+            graph3.GraphPane.YAxis.Scale.Min = 0;
+            graph3.GraphPane.YAxis.Scale.Max = 1;
+            graph3.GraphPane.YAxis.Scale.MinorStep = GlobalVar.BIN;
+            graph3.GraphPane.YAxis.Scale.MajorStep = GlobalVar.BIN * 2;
+            for (double i = 0; i <= 1; i += GlobalVar.BIN)
+            {
+                for (double j = GlobalVar.BIN; j <= (1 + GlobalVar.BIN); j += GlobalVar.BIN)
+                {
+                    BoxObj box = new BoxObj(i, j, GlobalVar.BIN, GlobalVar.BIN, Color.Black, Utilities.binColor(maxscore, minscore, score[Convert.ToInt32((i / GlobalVar.BIN))][Convert.ToInt32(((j / GlobalVar.BIN) - 1))]));
+                    box.IsClippedToChartRect = true;
+                    graph3.GraphPane.GraphObjList.Add(box);
+                }
+            }
+            graph3.Invalidate();
+            graph3.Refresh();
+            panel3.Controls.Add(graph3);
+
+            graph4 = new ZedGraph.ZedGraphControl();
+            graph4.Dock = DockStyle.Fill;
+            graph4.GraphPane.CurveList.Clear();
+            graph4.GraphPane.Title.Text = "Mass vs NET";
+            graph4.GraphPane.XAxis.Title.Text = "NET";
+            graph4.GraphPane.YAxis.Title.Text = "Mass";
+            PointPairList data4 = new PointPairList();
+            foreach (GlycoRecord record in merg)
+            {
+                data4.Add(new PointPair(record.net, record.mass));
+            }
+            LineItem curve4 = graph4.GraphPane.AddCurve(null, data4, Color.Black, SymbolType.Circle);
+            curve4.Line.IsVisible = false;
+            curve4.Symbol.Fill = new Fill(Color.Red);
+            curve4.Symbol.Size = 4.0F;
+            graph4.GraphPane.AxisChange();
+            graph4.Invalidate();
+            graph4.Refresh();
+            panel4.Controls.Add(graph4);
+
+            tabControl1.TabPages.Add(tabPage2);
+            tabControl1.TabPages.Add(tabPage3);
+            tabControl1.SelectedIndex = 1;
+            tabControl1.Cursor = Cursors.Default;
         }
     }
 }

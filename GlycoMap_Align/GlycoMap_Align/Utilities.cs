@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Net;
 using System.Data;
+using System.Drawing;
 
 namespace GlycoMap_Align
 {
@@ -34,6 +35,30 @@ namespace GlycoMap_Align
             {
                 return false;
             }
+        }
+
+        public static double assignMasbin(double err)
+        {
+            for (double i = (-GlobalVar.TOLMAS * 1000000); i < (GlobalVar.TOLMAS * 1000000); i += 0.25)
+            {
+                if (((err * 1000000) >= Math.Round(i, 3)) && ((err * 1000000) < Math.Round((i + 0.25), 3)))
+                {
+                    return Math.Round(i, 3);
+                }
+            }
+            return 20.0;
+        }
+
+        public static double assignNetbin(double err)
+        {
+            for (double i = (-GlobalVar.TOLNET * 100); i < (GlobalVar.TOLNET * 100); i += 0.1)
+            {
+                if (((err * 100) >= Math.Round(i, 1)) && ((err * 100) < Math.Round((i + 0.1), 1)))
+                {
+                    return Math.Round(i, 1);
+                }
+            }
+            return 20.0;
         }
 
         public static double deviation(List<double> values)
@@ -106,6 +131,12 @@ namespace GlycoMap_Align
                 keys.Add(Math.Round(i, 2));
             }
             return keys;
+        }
+
+        public static Color binColor(double maxscore, double minscore, double score)
+        {
+            int index = Convert.ToInt32(((score - minscore) / (maxscore - minscore)) * 100);
+            return GlobalVar.GRADIENT[index];
         }
     }
 }

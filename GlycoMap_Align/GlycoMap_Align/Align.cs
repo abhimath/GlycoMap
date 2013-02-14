@@ -9,6 +9,7 @@ namespace GlycoMap_Align
     {
         private Dictionary<double, List<GlycoRecord>> refc_buck, targ_buck;
         private List<double> keys;
+        private Dictionary<double, int> maserr, neterr;
         private List<List<double>> score, matrix;
         private List<List<int>> traceback;
         private double masstddev, netstddev;
@@ -44,6 +45,18 @@ namespace GlycoMap_Align
         {
             List<double> masdiff = new List<double>();
             List<double> netdiff = new List<double>();
+            maserr = new Dictionary<double, int>();
+            neterr = new Dictionary<double, int>();
+
+            for (double i = (-GlobalVar.TOLMAS * 1000000); i < (GlobalVar.TOLMAS * 1000000); i += 0.25)
+            {
+                maserr[Math.Round(i, 3)] = 0;
+            }
+
+            for (double i = (-GlobalVar.TOLNET * 100); i < (GlobalVar.TOLNET * 100); i += 0.1)
+            {
+                neterr[Math.Round(i, 1)] = 0;
+            }
 
             foreach (double okey in keys)
             {
@@ -58,6 +71,8 @@ namespace GlycoMap_Align
                             {
                                 masdiff.Add(Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass)));
                                 netdiff.Add(Math.Abs(outs.net - ins.net));
+                                maserr[Utilities.assignMasbin(Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass)))] += 1;
+                                neterr[Utilities.assignNetbin(Math.Abs(outs.net - ins.net))] += 1;
                                 count++;
                                 break;
                             }
@@ -73,6 +88,8 @@ namespace GlycoMap_Align
             }
             masstddev = Utilities.deviation(masdiff);
             netstddev = Utilities.deviation(netdiff);
+            System.Console.WriteLine(masstddev);
+            System.Console.WriteLine(netstddev);
         }
 
         private void calculateScore()
@@ -169,6 +186,16 @@ namespace GlycoMap_Align
             return keys;
         }
 
+        public Dictionary<double, int> getMaserr()
+        {
+            return maserr;
+        }
+
+        public Dictionary<double, int> getNeterr()
+        {
+            return neterr;
+        }
+
         public Dictionary<double, List<GlycoRecord>> getRefcBuck()
         {
             return refc_buck;
@@ -184,14 +211,19 @@ namespace GlycoMap_Align
             return score;
         }
 
-        public List<List<double>> getMatrix()
-        {
-            return matrix;
-        }
-
         public List<List<int>> getTraceback()
         {
             return traceback;
+        }
+
+        public double getMaxscore()
+        {
+            return maxscore;
+        }
+
+        public double getMinscore()
+        {
+            return minscore;
         }
     }
 }
