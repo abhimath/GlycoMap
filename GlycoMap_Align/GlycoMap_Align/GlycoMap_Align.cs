@@ -96,8 +96,8 @@ namespace GlycoMap_Align
             targ_buck = aln.getTargBuck();
             score = aln.getScore();
             traceback = aln.getTraceback();
-            maxscore = aln.getMaxscore();
-            minscore = aln.getMinscore();
+            maxscore = Math.Log(aln.getMaxscore());
+            minscore = Math.Log(aln.getMinscore());
 
             Merge mrg = new Merge(keys, refc_buck, targ_buck, traceback);
             merg = mrg.getMergMap();
@@ -170,7 +170,9 @@ namespace GlycoMap_Align
             {
                 for (double j = GlobalVar.BIN; j <= (1 + GlobalVar.BIN); j += GlobalVar.BIN)
                 {
-                    BoxObj box = new BoxObj(i, j, GlobalVar.BIN, GlobalVar.BIN, Color.Black, Utilities.binColor(maxscore, minscore, score[Convert.ToInt32((i / GlobalVar.BIN))][Convert.ToInt32(((j / GlobalVar.BIN) - 1))]));
+                    double val = Math.Log(score[Convert.ToInt32((i / GlobalVar.BIN))][Convert.ToInt32(((j / GlobalVar.BIN) - 1))]);
+                    Color color = Utilities.binColor(maxscore, minscore, val);
+                    BoxObj box = new BoxObj(i, j, GlobalVar.BIN, GlobalVar.BIN, Color.Black, color);
                     box.IsClippedToChartRect = true;
                     graph3.GraphPane.GraphObjList.Add(box);
                 }

@@ -88,8 +88,6 @@ namespace GlycoMap_Align
             }
             masstddev = Utilities.deviation(masdiff);
             netstddev = Utilities.deviation(netdiff);
-            System.Console.WriteLine(masstddev);
-            System.Console.WriteLine(netstddev);
         }
 
         private void calculateScore()
