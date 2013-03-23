@@ -14,11 +14,11 @@ namespace GlycoMap_Align
         private List<GlycoRecord> refc, targ, merg;
         private String refloc, targloc;
         private Dictionary<double, List<GlycoRecord>> refc_buck, targ_buck;
-        private List<double> keys;
         private Dictionary<double, int> maserr, neterr;
         private List<List<double>> score;
         private List<List<int>> traceback;
         private double maxscore, minscore;
+        private int masfreqmax, netfreqmax;
         private ZedGraphControl graph1, graph2, graph3, graph4;
 
         public GlycoMap_Align()
@@ -83,13 +83,28 @@ namespace GlycoMap_Align
                 refloc = "database.xml";
             }
 
-            ParseXML reference = new ParseXML(refloc);
-            ParseXML target = new ParseXML(targloc);
-            refc = reference.getMap();
-            targ = target.getMap();
+            if (refloc.EndsWith(".xml", StringComparison.CurrentCultureIgnoreCase))
+            {
+                ParseXML reference = new ParseXML(refloc, true);
+                refc = reference.getMap();
+            }
+            else
+            {
+                ParseCSV reference = new ParseCSV(refloc, true);
+                refc = reference.getMap();
+            }
+            if (targloc.EndsWith(".xml", StringComparison.CurrentCultureIgnoreCase))
+            {
+                ParseXML target = new ParseXML(targloc, false);
+                targ = target.getMap();
+            }
+            else
+            {
+                ParseCSV target = new ParseCSV(targloc, false);
+                targ = target.getMap();
+            }
 
             Align aln = new Align(refc, targ);
-            keys = aln.getKeys();
             maserr = aln.getMaserr();
             neterr = aln.getNeterr();
             refc_buck = aln.getRefcBuck();
@@ -98,11 +113,11 @@ namespace GlycoMap_Align
             traceback = aln.getTraceback();
             maxscore = Math.Log(aln.getMaxscore());
             minscore = Math.Log(aln.getMinscore());
+            masfreqmax = Utilities.maxFreq(maserr);
+            netfreqmax = Utilities.maxFreq(neterr);
 
-            Merge mrg = new Merge(keys, refc_buck, targ_buck, traceback);
+            Merge mrg = new Merge(refc_buck, targ_buck, traceback);
             merg = mrg.getMergMap();
-
-            new WriteXML(merg);
 
             graph1 = new ZedGraphControl();
             graph1.Dock = DockStyle.Fill;
@@ -113,11 +128,11 @@ namespace GlycoMap_Align
             graph1.GraphPane.XAxis.Scale.Min = -GlobalVar.TOLMAS * 1000000;
             graph1.GraphPane.XAxis.Scale.Max = GlobalVar.TOLMAS * 1000000;
             graph1.GraphPane.YAxis.Scale.Min = 0;
-            graph1.GraphPane.YAxis.Scale.Max = merg.Count + 50;
+            graph1.GraphPane.YAxis.Scale.Max = masfreqmax;
             graph1.GraphPane.XAxis.Scale.MajorStep = 1;
             graph1.GraphPane.XAxis.Scale.MinorStep = 0.25;
-            graph1.GraphPane.YAxis.Scale.MinorStep = 10;
-            graph1.GraphPane.YAxis.Scale.MajorStep = 50;
+            graph1.GraphPane.YAxis.Scale.MinorStep = masfreqmax / 20;
+            graph1.GraphPane.YAxis.Scale.MajorStep = masfreqmax / 10;
             for (double i = (-GlobalVar.TOLMAS * 1000000); i < ((GlobalVar.TOLMAS * 1000000) - 0.25); i += 0.25)
             {
                 BoxObj box = new BoxObj(i, maserr[Math.Round(i, 3)], 0.25, maserr[Math.Round(i, 3)], Color.Black, Color.Red);
@@ -127,7 +142,7 @@ namespace GlycoMap_Align
             graph1.Invalidate();
             graph1.Refresh();
             panel1.Controls.Add(graph1);
-
+            
             graph2 = new ZedGraphControl();
             graph2.Dock = DockStyle.Fill;
             graph2.GraphPane.CurveList.Clear();
@@ -139,9 +154,9 @@ namespace GlycoMap_Align
             graph2.GraphPane.XAxis.Scale.MinorStep = 0.1;
             graph2.GraphPane.XAxis.Scale.MajorStep = 0.2;
             graph2.GraphPane.YAxis.Scale.Min = 0;
-            graph2.GraphPane.YAxis.Scale.Max = merg.Count + 50;
-            graph2.GraphPane.YAxis.Scale.MinorStep = 10;
-            graph2.GraphPane.YAxis.Scale.MajorStep = 50;
+            graph2.GraphPane.YAxis.Scale.Max = netfreqmax;
+            graph2.GraphPane.YAxis.Scale.MinorStep = netfreqmax / 20;
+            graph2.GraphPane.YAxis.Scale.MajorStep = netfreqmax / 10;
             for (double i = (-GlobalVar.TOLNET * 100); i < ((GlobalVar.TOLNET * 100) - 0.1); i += 0.1)
             {
                 BoxObj box = new BoxObj(i, neterr[Math.Round(i, 1)], 0.1, neterr[Math.Round(i, 1)], Color.Black, Color.Red);
@@ -156,19 +171,19 @@ namespace GlycoMap_Align
             graph3.Dock = DockStyle.Fill;
             graph3.GraphPane.CurveList.Clear();
             graph3.GraphPane.Title.Text = "Scoring Heat Map";
-            graph3.GraphPane.XAxis.Title.Text = "Reference GlycoMap";
-            graph3.GraphPane.YAxis.Title.Text = "Target GlycoMap";
-            graph3.GraphPane.XAxis.Scale.Min = 0;
-            graph3.GraphPane.XAxis.Scale.Max = 1;
+            graph3.GraphPane.XAxis.Title.Text = "Target GlycoMap";
+            graph3.GraphPane.YAxis.Title.Text = "Reference GlycoMap";
+            graph3.GraphPane.XAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BIN);
+            graph3.GraphPane.XAxis.Scale.Max = GlobalVar.RMAXNET;
             graph3.GraphPane.XAxis.Scale.MinorStep = GlobalVar.BIN;
             graph3.GraphPane.XAxis.Scale.MajorStep = GlobalVar.BIN * 2;
-            graph3.GraphPane.YAxis.Scale.Min = 0;
-            graph3.GraphPane.YAxis.Scale.Max = 1;
+            graph3.GraphPane.YAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BIN);
+            graph3.GraphPane.YAxis.Scale.Max = GlobalVar.RMAXNET;
             graph3.GraphPane.YAxis.Scale.MinorStep = GlobalVar.BIN;
             graph3.GraphPane.YAxis.Scale.MajorStep = GlobalVar.BIN * 2;
-            for (double i = 0; i <= 1; i += GlobalVar.BIN)
+            for (double i = (GlobalVar.RMINNET - GlobalVar.BIN); i <= GlobalVar.RMAXNET; i += GlobalVar.BIN)
             {
-                for (double j = GlobalVar.BIN; j <= (1 + GlobalVar.BIN); j += GlobalVar.BIN)
+                for (double j = GlobalVar.RMINNET; j <= (GlobalVar.RMAXNET + GlobalVar.BIN); j += GlobalVar.BIN)
                 {
                     double val = Math.Log(score[Convert.ToInt32((i / GlobalVar.BIN))][Convert.ToInt32(((j / GlobalVar.BIN) - 1))]);
                     Color color = Utilities.binColor(maxscore, minscore, val);
@@ -200,11 +215,13 @@ namespace GlycoMap_Align
             graph4.Invalidate();
             graph4.Refresh();
             panel4.Controls.Add(graph4);
-
+            
             tabControl1.TabPages.Add(tabPage2);
             tabControl1.TabPages.Add(tabPage3);
             tabControl1.SelectedIndex = 1;
             tabControl1.Cursor = Cursors.Default;
+
+            new WriteXML(merg);
         }
     }
 }

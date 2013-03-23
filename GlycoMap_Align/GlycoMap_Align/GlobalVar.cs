@@ -6,13 +6,13 @@ using System.Drawing;
 
 namespace GlycoMap_Align
 {
-    struct path
+    struct Path
     {
         public double upd;
         public int pos;
     }
 
-    struct spectra
+    struct Spectra
     {
         public float[] mz, intensity;
     }
@@ -22,15 +22,31 @@ namespace GlycoMap_Align
         public int id, cidlen, hcdlen, etdlen;
         public double mass, net, pepmass, glymass, cidscore, hcdscore, etdscore;
         public string protein, peptide, site, glycan, cidstr, hcdstr, etdstr;
-        public spectra cidspec, hcdspec, etdspec;
+        public Spectra cidspec, hcdspec, etdspec;
     }
 
     class GlobalVar
     {
-        public static double TOLMAS = 0.00001;
-        public static double TOLNET = 0.025;
         public static double BIN = 0.05;
         public static List<Color> GRADIENT;
+        public static double ERRBINMAS = 0.25;
+        public static double ERRBINNET = 0.1;
+        public static List<double> KEYS;
+        public static double RMAXMAS = 0.0;
+        public static double RMINMAS = 1000000.0;
+        public static double RMAXNET = 0.0;
+        public static double RMINNET = 1000000.0;
+        public static double TOLMAS = 0.00001;
+        public static double TOLNET = 0.025;
+
+        public static void assignKeys()
+        {
+            KEYS = new List<double>();
+            for (double i = GlobalVar.RMINNET; i < (GlobalVar.RMAXNET + GlobalVar.BIN); i += GlobalVar.BIN)
+            {
+                KEYS.Add(Math.Round(i, 2));
+            }
+        }
 
         public static void setGradient()
         {

@@ -159,11 +159,11 @@
             // 
             // openFileDialog1
             // 
-            this.openFileDialog1.Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*";
+            this.openFileDialog1.Filter = "CSV files (*.csv)|*.csv|XML files (*.xml)|*.xml|All files (*.*)|*.*";
             // 
             // openFileDialog2
             // 
-            this.openFileDialog2.Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*";
+            this.openFileDialog2.Filter = "CSV files (*.csv)|*.csv|XML files (*.xml)|*.xml|All files (*.*)|*.*";
             // 
             // tabPage3
             // 

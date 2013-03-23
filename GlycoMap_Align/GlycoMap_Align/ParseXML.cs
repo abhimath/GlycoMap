@@ -35,7 +35,7 @@ namespace GlycoMap_Align
         }
         private List<GlycoRecord> map;
 
-        public ParseXML(String file)
+        public ParseXML(String file, Boolean flag)
         {
             XmlReader xml = XmlReader.Create(file);
             map = new List<GlycoRecord>();
@@ -54,10 +54,32 @@ namespace GlycoMap_Align
                         case "Mass":
                             xml.Read();
                             record.mass = double.Parse(xml.ReadString());
+                            if (flag)
+                            {
+                                if (GlobalVar.RMAXMAS < record.mass)
+                                {
+                                    GlobalVar.RMAXMAS = record.mass;
+                                }
+                                if (GlobalVar.RMINMAS > record.mass)
+                                {
+                                    GlobalVar.RMINMAS = record.mass;
+                                }
+                            }
                             break;
                         case "NET":
                             xml.Read();
                             record.net = double.Parse(xml.ReadString());
+                            if (flag)
+                            {
+                                if (GlobalVar.RMAXNET < record.net)
+                                {
+                                    GlobalVar.RMAXNET = record.net;
+                                }
+                                if (GlobalVar.RMINNET > record.net)
+                                {
+                                    GlobalVar.RMINNET = record.net;
+                                }
+                            }
                             break;
                         case "Protein":
                             xml.Read();
@@ -126,12 +148,39 @@ namespace GlycoMap_Align
                     }
                 }
             }
+            if (flag)
+            {
+                if ((GlobalVar.RMAXNET + GlobalVar.TOLNET) < 1.0)
+                {
+                    GlobalVar.RMAXNET += GlobalVar.TOLNET;
+                    GlobalVar.RMAXNET = (Convert.ToInt32(GlobalVar.RMAXNET / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                }
+                else
+                {
+                    GlobalVar.RMAXNET = 1.0;
+                }
+                if ((GlobalVar.RMINNET - GlobalVar.TOLNET) > 0.0)
+                {
+                    GlobalVar.RMINNET -= GlobalVar.TOLNET;
+                    GlobalVar.RMINNET = (Convert.ToInt32(GlobalVar.RMINNET / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                }
+                else
+                {
+                    GlobalVar.RMINNET = GlobalVar.BIN;
+                }
+                GlobalVar.RMAXMAS = ((GlobalVar.RMAXMAS * (1 - GlobalVar.TOLMAS)) / (1 + GlobalVar.TOLMAS));
+                GlobalVar.RMAXMAS = (Convert.ToInt32(GlobalVar.RMAXMAS / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                GlobalVar.RMINMAS = ((GlobalVar.RMINMAS * (1 + GlobalVar.TOLMAS)) / (1 - GlobalVar.TOLMAS));
+                GlobalVar.RMINMAS = (Convert.ToInt32(GlobalVar.RMINMAS / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+
+                GlobalVar.assignKeys();
+            }
         }
 
-        private spectra parseBase64(int speclen, string specstr)
+        private Spectra parseBase64(int speclen, string specstr)
         {
             byte[] cid = System.Convert.FromBase64String(specstr);
-            spectra spec = new spectra();
+            Spectra spec = new Spectra();
             spec.mz = new float[speclen];
             spec.intensity = new float[speclen];
             int offset;

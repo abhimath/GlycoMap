@@ -8,7 +8,6 @@ namespace GlycoMap_Align
     class Align
     {
         private Dictionary<double, List<GlycoRecord>> refc_buck, targ_buck;
-        private List<double> keys;
         private Dictionary<double, int> maserr, neterr;
         private List<List<double>> score, matrix;
         private List<List<int>> traceback;
@@ -19,12 +18,11 @@ namespace GlycoMap_Align
         {
             refc_buck = Utilities.assignBucket(refc);
             targ_buck = Utilities.assignBucket(targ);
-            keys = Utilities.assignKeys();
             score = new List<List<double>>();
             matrix = new List<List<double>>();
             traceback = new List<List<int>>();
 
-            foreach (double key in keys)
+            foreach (double key in GlobalVar.KEYS)
             {
                 if (!refc_buck.ContainsKey(key))
                 {
@@ -48,19 +46,18 @@ namespace GlycoMap_Align
             maserr = new Dictionary<double, int>();
             neterr = new Dictionary<double, int>();
 
-            for (double i = (-GlobalVar.TOLMAS * 1000000); i < (GlobalVar.TOLMAS * 1000000); i += 0.25)
+            for (double i = (-GlobalVar.TOLMAS * 1000000); i < (GlobalVar.TOLMAS * 1000000); i += GlobalVar.ERRBINMAS)
             {
                 maserr[Math.Round(i, 3)] = 0;
             }
-
-            for (double i = (-GlobalVar.TOLNET * 100); i < (GlobalVar.TOLNET * 100); i += 0.1)
+            for (double i = (-GlobalVar.TOLNET * 100); i < (GlobalVar.TOLNET * 100); i += GlobalVar.ERRBINNET)
             {
                 neterr[Math.Round(i, 1)] = 0;
             }
-
-            foreach (double okey in keys)
+            string str = "Target,,,Reference\n";
+            foreach (double okey in GlobalVar.KEYS)
             {
-                foreach (double ikey in keys)
+                foreach (double ikey in GlobalVar.KEYS)
                 {
                     int count = 0;
                     foreach (GlycoRecord outs in targ_buck[okey])
@@ -69,10 +66,12 @@ namespace GlycoMap_Align
                         {
                             if (Utilities.check(outs.mass, ins.mass, outs.net, ins.net))
                             {
+                                str += outs.id + "," + outs.mass + "," + outs.net + ",";
+                                str += ins.id + "," + ins.mass + "," + ins.net + "," + ins.protein + "," + ins.peptide + "," + ins.glycan + "\n";
                                 masdiff.Add(Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass)));
                                 netdiff.Add(Math.Abs(outs.net - ins.net));
-                                maserr[Utilities.assignMasbin(Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass)))] += 1;
-                                neterr[Utilities.assignNetbin(Math.Abs(outs.net - ins.net))] += 1;
+                                maserr[Utilities.assignMasbin((outs.mass - ins.mass) / (outs.mass + ins.mass))] += 1;
+                                neterr[Utilities.assignNetbin(outs.net - ins.net)] += 1;
                                 count++;
                                 break;
                             }
@@ -86,16 +85,18 @@ namespace GlycoMap_Align
                     }
                 }
             }
+            System.IO.File.WriteAllText("hits.csv", str);
             masstddev = Utilities.deviation(masdiff);
             netstddev = Utilities.deviation(netdiff);
         }
 
         private void calculateScore()
         {
-            foreach (double okey in keys)
+            string str="";
+            foreach (double okey in GlobalVar.KEYS)
             {
                 List<double> temp = new List<double>();
-                foreach (double ikey in keys)
+                foreach (double ikey in GlobalVar.KEYS)
                 {
                     int count = 0;
                     double s = 0.0, dm = 0.0, dn = 0.0;
@@ -105,6 +106,7 @@ namespace GlycoMap_Align
                         {
                             if (Utilities.check(outs.mass, ins.mass, outs.net, ins.net))
                             {
+                                
                                 dm = Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass));
                                 dn = Math.Abs(outs.net - ins.net);
                                 s -= Math.Log(masstddev * netstddev * 2 * Math.PI) - ((Math.Pow(dm, 2)) / (2 * Math.Pow(masstddev, 2))) - ((Math.Pow(dn, 2)) / (2 * Math.Pow(netstddev, 2)));
@@ -136,9 +138,11 @@ namespace GlycoMap_Align
                     {
                         s = 10.0;
                     }
+                    str += s.ToString() + ",";
                     temp.Add(s);
                 }
-                score.Add(temp);
+                str += "\n";
+                score.Add(temp);                
             }
             for (int i = 0; i < score.Count; i++)
             {
@@ -150,38 +154,38 @@ namespace GlycoMap_Align
                     }
                 }
             }
+            System.IO.File.WriteAllText("score.csv", str);
         }
 
         private void calculateMatrix()
         {
             List<double> tempupd = new List<double>();
-            
-            for (int i = 0; i <= keys.Count; i++)
+            string str = "";
+
+            for (int i = 0; i <= GlobalVar.KEYS.Count; i++)
             {
                 tempupd.Add(i * minscore);
             }
             matrix.Add(tempupd);
 
-            for (int i = 1; i <= keys.Count; i++)
+            for (int i = 1; i <= GlobalVar.KEYS.Count; i++)
             {
                 tempupd = new List<double> { i * minscore };
                 List<int> temppos = new List<int>();
                 matrix.Add(tempupd);
-                for (int j = 1; j <= keys.Count; j++)
+                for (int j = 1; j <= GlobalVar.KEYS.Count; j++)
                 {
-                    path cur = Utilities.findMax(score[i - 1][j - 1], matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]);
+                    Path cur = Utilities.findMax(score[i - 1][j - 1], matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]);
+                    str += cur.pos.ToString() + ",";
                     tempupd.Add(cur.upd);
                     temppos.Add(cur.pos);
                 }
+                str += "\n";
+                System.IO.File.WriteAllText("traceback.csv", str);
                 matrix.RemoveAt(i);
                 matrix.Insert(i, tempupd);
                 traceback.Add(temppos);
             }
-        }
-
-        public List<double> getKeys()
-        {
-            return keys;
         }
 
         public Dictionary<double, int> getMaserr()

@@ -9,25 +9,25 @@ namespace GlycoMap_Align
     {
         List<GlycoRecord> merg;
 
-        public Merge(List<double> keys, Dictionary<double, List<GlycoRecord>> refc_buck, Dictionary<double, List<GlycoRecord>> targ_buck, List<List<int>> traceback)
+        public Merge(Dictionary<double, List<GlycoRecord>> refc_buck, Dictionary<double, List<GlycoRecord>> targ_buck, List<List<int>> traceback)
         {
-            merg = copyData(keys, refc_buck, targ_buck, traceback);
+            merg = copyData(refc_buck, targ_buck, traceback);
         }
 
-        private List<GlycoRecord> copyData(List<double> keys, Dictionary<double, List<GlycoRecord>> refc_buck, Dictionary<double, List<GlycoRecord>> targ_buck, List<List<int>> traceback)
+        private List<GlycoRecord> copyData(Dictionary<double, List<GlycoRecord>> refc_buck, Dictionary<double, List<GlycoRecord>> targ_buck, List<List<int>> traceback)
         {
             List<GlycoRecord> tempmap = new List<GlycoRecord>();
-            int i = keys.Count - 1;
-            int j = keys.Count - 1;
+            int i = GlobalVar.KEYS.Count - 1;
+            int j = GlobalVar.KEYS.Count - 1;
 
             while (i >= 0 || j >= 0)
             {
                 if (traceback[i][j] == 0)
                 {
-                    foreach (GlycoRecord outs in targ_buck[keys[i]])
+                    foreach (GlycoRecord outs in targ_buck[GlobalVar.KEYS[i]])
                     {
                         int check = 0;
-                        foreach (GlycoRecord ins in refc_buck[keys[j]])
+                        foreach (GlycoRecord ins in refc_buck[GlobalVar.KEYS[j]])
                         {
                             if (Utilities.check(outs.mass, ins.mass, outs.net, ins.net))
                             {
@@ -38,7 +38,7 @@ namespace GlycoMap_Align
                         }
                         if (check == 0)
                         {
-                            tempmap.Add(outs);
+                            //tempmap.Add(outs);
                         }
                     }
                     i--;
@@ -50,9 +50,9 @@ namespace GlycoMap_Align
                 }
                 else
                 {
-                    foreach (GlycoRecord outs in targ_buck[keys[i]])
+                    foreach (GlycoRecord outs in targ_buck[GlobalVar.KEYS[i]])
                     {
-                        tempmap.Add(outs);
+                        //tempmap.Add(outs);
                     }
                     i--;
                 }

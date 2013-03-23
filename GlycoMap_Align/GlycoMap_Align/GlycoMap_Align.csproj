@@ -83,6 +83,7 @@
     <Compile Include="Align.cs" />
     <Compile Include="Merge.cs" />
     <Compile Include="GlobalVar.cs" />
+    <Compile Include="ParseCSV.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="ParseXML.cs" />
     <Compile Include="GlycoMap_Align.cs">
