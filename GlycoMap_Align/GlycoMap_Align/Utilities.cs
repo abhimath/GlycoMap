@@ -11,28 +11,51 @@ namespace GlycoMap_Align
 {
     class Utilities
     {
-        public static Dictionary<double, List<GlycoRecord>> assignBucket(List<GlycoRecord> map)
+        public static Dictionary<float, float> assignMzBucket(float[] mz)
+        {
+            Dictionary<float, float> tempdict = new Dictionary<float, float>();
+            Dictionary<float, List<float>> tempcount = new Dictionary<float, List<float>>();
+
+            for (int i = 0; i < mz.Length; i++)
+            {
+                if (mz[i] >= GlobalVar.MINMZ && mz[i] < GlobalVar.MAXMZ)
+                {
+                    float key = (float) Math.Round((Convert.ToInt32((mz[i] / GlobalVar.BINMZ) + 1.0) * GlobalVar.BINMZ), 2);
+
+                    if (tempdict.ContainsKey(key))
+                    {
+                        tempcount[key].Add(mz[i]);
+                    }
+                    else
+                    {
+                        tempcount[key] = new List<float>() { mz[i] };
+                    }
+                }
+            }
+
+            foreach (float key in tempcount.Keys)
+            {
+                tempdict[key] = tempcount[key].Average();
+            }
+            return tempdict;
+        }
+
+        public static Dictionary<double, List<GlycoRecord>> assignNetBucket(List<GlycoRecord> map)
         {
             Dictionary<double, List<GlycoRecord>> tempdict = new Dictionary<double, List<GlycoRecord>>();
 
             for (int i = 0; i < map.Count; i++)
             {
-                GlycoRecord tempglyrec;
-                tempglyrec = map[i];
-                List<GlycoRecord> templist;
-                double ind = Math.Round((((int)((map[i].net / GlobalVar.BIN) + 1.0) * GlobalVar.BIN)), 2);
+                double key = Math.Round((Convert.ToInt32((map[i].net / GlobalVar.BINNET) + 1.0) * GlobalVar.BINNET), 2);
 
-                if (tempdict.ContainsKey(ind))
+                if (tempdict.ContainsKey(key))
                 {
-                    templist = tempdict[ind];
+                    tempdict[key].Add(map[i]);
                 }
                 else
                 {
-                    templist = new List<GlycoRecord>();
+                    tempdict[key] = new List<GlycoRecord>() { map[i] };
                 }
-
-                templist.Add(tempglyrec);
-                tempdict[ind] = templist;
             }
             return tempdict;
         }
@@ -79,6 +102,31 @@ namespace GlycoMap_Align
             }
         }
 
+        public static double correlation(Dictionary<float, float> fz, Dictionary<float, float> gz)
+        {
+            double dot = 0.0;
+            double val1 = 0.0;
+            double val2 = 0.0;
+            double cosine;
+
+            foreach (float key in GlobalVar.MZKEYS)
+            {
+                dot += fz[key] * gz[key];
+                val1 += Math.Pow(fz[key], 2);
+                val2 += Math.Pow(gz[key], 2);
+            }
+            cosine = (dot / (Math.Sqrt(val1) * Math.Sqrt(val2)));
+            if (double.IsNaN(cosine))
+            {
+                return 1;
+            }
+            if (cosine == 0)
+            {
+                return 1.0E-300;
+            }
+            return cosine;
+        }
+
         public static double deviation(List<double> values)
         {
             double std;
@@ -88,26 +136,23 @@ namespace GlycoMap_Align
             return std;
         }
 
-        public static Path findMax(double s, double d, double l, double u)
+        public static Path findMax(double d, double l, double u)
         {
             Path temp;
-            double sd = d + (2.1 * s);
-            double sl = l + s;
-            double su = u + s;
 
-            if (sd >= sl && sd >= su)
+            if (d >= l && d >= u)
             {
-                temp.upd = sd;
+                temp.upd = d;
                 temp.pos = 0;
             }
-            else if (sl > sd && sl >= su)
+            else if (l > d && l >= u)
             {
-                temp.upd = sl;
+                temp.upd = l;
                 temp.pos = 1;
             }
             else
             {
-                temp.upd = su;
+                temp.upd = u;
                 temp.pos = 2;
             }
 
@@ -139,6 +184,33 @@ namespace GlycoMap_Align
                 ds.ReadXml(stream);
                 writer.Write(ds.GetXml());
             }
+        }
+
+        public static Spectra parseBase64(int speclen, string specstr)
+        {
+            byte[] cid = System.Convert.FromBase64String(specstr);
+            Spectra spec = new Spectra();
+            spec.mz = new float[speclen];
+            spec.intensity = new float[speclen];
+            int offset;
+            for (int i = 0; i < speclen; i++)
+            {
+                xypair val;
+                val.x = 0;
+                val.y = 0;
+                offset = i * 8;
+                val.b0 = cid[offset + 7];
+                val.b1 = cid[offset + 6];
+                val.b2 = cid[offset + 5];
+                val.b3 = cid[offset + 4];
+                val.b4 = cid[offset + 3];
+                val.b5 = cid[offset + 2];
+                val.b6 = cid[offset + 1];
+                val.b7 = cid[offset];
+                spec.mz[i] = val.x;
+                spec.intensity[i] = val.y;
+            }
+            return spec;
         }
     }
 }

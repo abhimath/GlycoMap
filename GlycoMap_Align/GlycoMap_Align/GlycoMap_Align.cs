@@ -104,6 +104,82 @@ namespace GlycoMap_Align
                 targ = target.getMap();
             }
 
+            if (GlobalVar.REFCMAXMAS < GlobalVar.TARGMAXMAS)
+            {
+                GlobalVar.RMAXMAS = GlobalVar.REFCMAXMAS;
+            }
+            else
+            {
+                GlobalVar.RMAXMAS = GlobalVar.TARGMAXMAS;
+            }
+            if (GlobalVar.REFCMINMAS > GlobalVar.TARGMINMAS)
+            {
+                GlobalVar.RMINMAS = GlobalVar.REFCMINMAS;
+            }
+            else
+            {
+                GlobalVar.RMINMAS = GlobalVar.TARGMINMAS;
+            }
+            if (GlobalVar.REFCMAXNET < GlobalVar.TARGMAXNET)
+            {
+                GlobalVar.RMAXNET = GlobalVar.REFCMAXNET;
+            }
+            else
+            {
+                GlobalVar.RMAXNET = GlobalVar.TARGMAXNET;
+            }
+            if (GlobalVar.REFCMINNET > GlobalVar.TARGMINNET)
+            {
+                GlobalVar.RMINNET = GlobalVar.REFCMINNET;
+            }
+            else
+            {
+                GlobalVar.RMINNET = GlobalVar.TARGMINNET;
+            }
+
+            if ((GlobalVar.RMAXNET + GlobalVar.TOLNET) < 1.0)
+            {
+                GlobalVar.RMAXNET += GlobalVar.TOLNET;
+                GlobalVar.RMAXNET = (Convert.ToInt32(GlobalVar.RMAXNET / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
+            }
+            else
+            {
+                GlobalVar.RMAXNET = 1.0;
+            }
+            if ((GlobalVar.RMINNET - GlobalVar.TOLNET) > 0.0)
+            {
+                GlobalVar.RMINNET -= GlobalVar.TOLNET;
+                GlobalVar.RMINNET = (Convert.ToInt32(GlobalVar.RMINNET / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
+            }
+            else
+            {
+                GlobalVar.RMINNET = GlobalVar.BINNET;
+            }
+            GlobalVar.RMAXMAS = ((GlobalVar.RMAXMAS * (1 - GlobalVar.TOLMAS)) / (1 + GlobalVar.TOLMAS));
+            GlobalVar.RMAXMAS = (Convert.ToInt32(GlobalVar.RMAXMAS / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
+            GlobalVar.RMINMAS = ((GlobalVar.RMINMAS * (1 + GlobalVar.TOLMAS)) / (1 - GlobalVar.TOLMAS));
+            GlobalVar.RMINMAS = (Convert.ToInt32(GlobalVar.RMINMAS / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
+
+            System.Console.WriteLine(GlobalVar.RMAXMAS);
+            System.Console.WriteLine(GlobalVar.RMINMAS);
+            System.Console.WriteLine(GlobalVar.RMAXNET);
+            System.Console.WriteLine(GlobalVar.RMINNET);
+            GlobalVar.assignNetKeys();
+            
+            String str = "Mass,NET\n";
+            foreach (GlycoRecord rec in refc)
+            {
+                str += rec.mass + "," + rec.net + "\n";
+            }
+            System.IO.File.WriteAllText("refc.csv", str);
+
+            str = "Mass,NET\n";
+            foreach (GlycoRecord rec in targ)
+            {
+                str += rec.mass + "," + rec.net + "\n";
+            }
+            System.IO.File.WriteAllText("targ.csv", str);
+
             Align aln = new Align(refc, targ);
             maserr = aln.getMaserr();
             neterr = aln.getNeterr();
@@ -173,21 +249,21 @@ namespace GlycoMap_Align
             graph3.GraphPane.Title.Text = "Scoring Heat Map";
             graph3.GraphPane.XAxis.Title.Text = "Target GlycoMap";
             graph3.GraphPane.YAxis.Title.Text = "Reference GlycoMap";
-            graph3.GraphPane.XAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BIN);
+            graph3.GraphPane.XAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BINNET);
             graph3.GraphPane.XAxis.Scale.Max = GlobalVar.RMAXNET;
-            graph3.GraphPane.XAxis.Scale.MinorStep = GlobalVar.BIN;
-            graph3.GraphPane.XAxis.Scale.MajorStep = GlobalVar.BIN * 2;
-            graph3.GraphPane.YAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BIN);
+            graph3.GraphPane.XAxis.Scale.MinorStep = GlobalVar.BINNET;
+            graph3.GraphPane.XAxis.Scale.MajorStep = GlobalVar.BINNET * 2;
+            graph3.GraphPane.YAxis.Scale.Min = (GlobalVar.RMINNET - GlobalVar.BINNET);
             graph3.GraphPane.YAxis.Scale.Max = GlobalVar.RMAXNET;
-            graph3.GraphPane.YAxis.Scale.MinorStep = GlobalVar.BIN;
-            graph3.GraphPane.YAxis.Scale.MajorStep = GlobalVar.BIN * 2;
-            for (double i = (GlobalVar.RMINNET - GlobalVar.BIN); i <= GlobalVar.RMAXNET; i += GlobalVar.BIN)
+            graph3.GraphPane.YAxis.Scale.MinorStep = GlobalVar.BINNET;
+            graph3.GraphPane.YAxis.Scale.MajorStep = GlobalVar.BINNET * 2;
+            for (double i = (GlobalVar.RMINNET - GlobalVar.BINNET); i <= GlobalVar.RMAXNET; i += GlobalVar.BINNET)
             {
-                for (double j = GlobalVar.RMINNET; j <= (GlobalVar.RMAXNET + GlobalVar.BIN); j += GlobalVar.BIN)
+                for (double j = GlobalVar.RMINNET; j <= (GlobalVar.RMAXNET + GlobalVar.BINNET); j += GlobalVar.BINNET)
                 {
-                    double val = Math.Log(score[Convert.ToInt32((i / GlobalVar.BIN))][Convert.ToInt32(((j / GlobalVar.BIN) - 1))]);
+                    double val = Math.Log(score[Convert.ToInt32((i / GlobalVar.BINNET))][Convert.ToInt32(((j / GlobalVar.BINNET) - 1))]);
                     Color color = Utilities.binColor(maxscore, minscore, val);
-                    BoxObj box = new BoxObj(i, j, GlobalVar.BIN, GlobalVar.BIN, Color.Black, color);
+                    BoxObj box = new BoxObj(i, j, GlobalVar.BINNET, GlobalVar.BINNET, Color.Black, color);
                     box.IsClippedToChartRect = true;
                     graph3.GraphPane.GraphObjList.Add(box);
                 }

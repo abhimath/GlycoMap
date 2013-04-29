@@ -24,35 +24,39 @@ namespace GlycoMap_Align
                 values = line.Split(',');
                 if (flag)
                 {
-                    if (values[9].Equals("verified", StringComparison.OrdinalIgnoreCase))
+                    if (!values[3].Contains("decoy"))
                     {
-                        record.id = int.Parse(values[0]);
-                        record.mass = double.Parse(values[1]);
-                        record.net = double.Parse(values[2]);
-                        record.protein = values[3];
-                        record.peptide = values[4];
-                        record.site = values[5];
-                        record.glycan = values[6];
-                        record.pepmass = double.Parse(values[7]);
-                        record.glymass = double.Parse(values[8]);
-                        record.hcdscore = double.Parse(values[11]);
-                        record.cidscore = double.Parse(values[12]);
-                        record.etdscore = double.Parse(values[13]);
-                        if (GlobalVar.RMAXMAS < record.mass)
+                        if (values[10].Equals("true", StringComparison.OrdinalIgnoreCase))
                         {
-                            GlobalVar.RMAXMAS = record.mass;
-                        }
-                        if (GlobalVar.RMINMAS > record.mass)
-                        {
-                            GlobalVar.RMINMAS = record.mass;
-                        }
-                        if (GlobalVar.RMAXNET < record.net)
-                        {
-                            GlobalVar.RMAXNET = record.net;
-                        }
-                        if (GlobalVar.RMINNET > record.net)
-                        {
-                            GlobalVar.RMINNET = record.net;
+                            record.id = int.Parse(values[0]);
+                            record.mass = double.Parse(values[1]);
+                            record.net = double.Parse(values[2]);
+                            record.protein = values[3];
+                            record.peptide = values[4];
+                            record.site = values[5];
+                            record.glycan = values[6];
+                            record.pepmass = double.Parse(values[7]);
+                            record.glymass = double.Parse(values[8]);
+                            record.type = values[9];
+                            record.hcdscore = double.Parse(values[11]);
+                            record.cidscore = double.Parse(values[12]);
+                            record.etdscore = double.Parse(values[13]);
+                            if (GlobalVar.REFCMAXMAS < record.mass)
+                            {
+                                GlobalVar.REFCMAXMAS = record.mass;
+                            }
+                            if (GlobalVar.REFCMINMAS > record.mass)
+                            {
+                                GlobalVar.REFCMINMAS = record.mass;
+                            }
+                            if (GlobalVar.REFCMAXNET < record.net)
+                            {
+                                GlobalVar.REFCMAXNET = record.net;
+                            }
+                            if (GlobalVar.REFCMINNET > record.net)
+                            {
+                                GlobalVar.REFCMINNET = record.net;
+                            }
                         }
                     }
                 }
@@ -61,36 +65,52 @@ namespace GlycoMap_Align
                     record.id = int.Parse(values[0]);
                     record.mass = double.Parse(values[2]);
                     record.net = double.Parse(values[3]);
+                    if (GlobalVar.TARGMAXMAS < record.mass)
+                    {
+                        GlobalVar.TARGMAXMAS = record.mass;
+                    }
+                    if (GlobalVar.TARGMINMAS > record.mass)
+                    {
+                        GlobalVar.TARGMINMAS = record.mass;
+                    }
+                    if (GlobalVar.TARGMAXNET < record.net)
+                    {
+                        GlobalVar.TARGMAXNET = record.net;
+                    }
+                    if (GlobalVar.TARGMINNET > record.net)
+                    {
+                        GlobalVar.TARGMINNET = record.net;
+                    }
                 }
                 map.Add(record);
             }
-            if (flag)
+            /*if (flag)
             {
                 if ((GlobalVar.RMAXNET + GlobalVar.TOLNET) < 1.0)
                 {
                     GlobalVar.RMAXNET += GlobalVar.TOLNET;
-                    GlobalVar.RMAXNET = (Convert.ToInt32(GlobalVar.RMAXNET / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                    GlobalVar.RMAXNET = (Convert.ToInt32(GlobalVar.RMAXNET / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
                 }
                 else
                 {
-                    GlobalVar.RMAXNET = 1.0;
+                    GlobalVar.RMAXNET = (1.0 + GlobalVar.BINNET);
                 }
                 if ((GlobalVar.RMINNET - GlobalVar.TOLNET) > 0.0)
                 {
                     GlobalVar.RMINNET -= GlobalVar.TOLNET;
-                    GlobalVar.RMINNET = (Convert.ToInt32(GlobalVar.RMINNET / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                    GlobalVar.RMINNET = (Convert.ToInt32(GlobalVar.RMINNET / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
                 }
                 else
                 {
-                    GlobalVar.RMINNET = 0.0;
+                    GlobalVar.RMINNET = GlobalVar.BINNET;
                 }
                 GlobalVar.RMAXMAS = ((GlobalVar.RMAXMAS * (1 - GlobalVar.TOLMAS)) / (1 + GlobalVar.TOLMAS));
-                GlobalVar.RMAXMAS = (Convert.ToInt32(GlobalVar.RMAXMAS / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                GlobalVar.RMAXMAS = (Convert.ToInt32(GlobalVar.RMAXMAS / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
                 GlobalVar.RMINMAS = ((GlobalVar.RMINMAS * (1 + GlobalVar.TOLMAS)) / (1 - GlobalVar.TOLMAS));
-                GlobalVar.RMINMAS = (Convert.ToInt32(GlobalVar.RMINMAS / GlobalVar.BIN) + 1) * GlobalVar.BIN;
+                GlobalVar.RMINMAS = (Convert.ToInt32(GlobalVar.RMINMAS / GlobalVar.BINNET) + 1) * GlobalVar.BINNET;
 
-                GlobalVar.assignKeys();
-            }
+                GlobalVar.assignNetKeys();
+            }*/
             file.Close();
         }
 

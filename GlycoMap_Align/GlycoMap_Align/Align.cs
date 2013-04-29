@@ -16,13 +16,37 @@ namespace GlycoMap_Align
 
         public Align(List<GlycoRecord> refc, List<GlycoRecord> targ)
         {
-            refc_buck = Utilities.assignBucket(refc);
-            targ_buck = Utilities.assignBucket(targ);
+            /*
+            for (int i = 0; i < refc.Count; i++)
+            {
+                foreach (float key in GlobalVar.MZKEYS)
+                {
+                    if (!refc[i].cidspec.ContainsKey(key))
+                    {
+                        refc[i].cidspec[key] = 0f;
+                    }
+                }
+            }
+
+            for (int i = 0; i < targ.Count; i++)
+            {
+                foreach (float key in GlobalVar.MZKEYS)
+                {
+                    if (!targ[i].cidspec.ContainsKey(key))
+                    {
+                        targ[i].cidspec[key] = 0f;
+                    }
+                }
+            }
+            */ 
+
+            refc_buck = Utilities.assignNetBucket(refc);
+            targ_buck = Utilities.assignNetBucket(targ);
             score = new List<List<double>>();
             matrix = new List<List<double>>();
             traceback = new List<List<int>>();
 
-            foreach (double key in GlobalVar.KEYS)
+            foreach (double key in GlobalVar.NETKEYS)
             {
                 if (!refc_buck.ContainsKey(key))
                 {
@@ -54,30 +78,67 @@ namespace GlycoMap_Align
             {
                 neterr[Math.Round(i, 1)] = 0;
             }
-            string str = "Target,,,Reference\n";
-            foreach (double okey in GlobalVar.KEYS)
+            string str = "TargetID,TargetMass,TargetNET,ReferenceID,ReferenceMass,ReferenceNET,Protein,Site,Peptide,Glycan,Type\n";//
+            foreach (double okey in GlobalVar.NETKEYS)
             {
-                foreach (double ikey in GlobalVar.KEYS)
+                foreach (double ikey in GlobalVar.NETKEYS)
                 {
                     int count = 0;
                     foreach (GlycoRecord outs in targ_buck[okey])
                     {
+                        double dm = 0.0, dn = 0.0, euc = 100.0;
+                        GlycoRecord temprec = new GlycoRecord();//
+                        int chk = 0;
                         foreach (GlycoRecord ins in refc_buck[ikey])
                         {
                             if (Utilities.check(outs.mass, ins.mass, outs.net, ins.net))
                             {
-                                str += outs.id + "," + outs.mass + "," + outs.net + ",";
-                                str += ins.id + "," + ins.mass + "," + ins.net + "," + ins.protein + "," + ins.peptide + "," + ins.glycan + "\n";
-                                masdiff.Add(Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass)));
-                                netdiff.Add(Math.Abs(outs.net - ins.net));
-                                maserr[Utilities.assignMasbin((outs.mass - ins.mass) / (outs.mass + ins.mass))] += 1;
-                                neterr[Utilities.assignNetbin(outs.net - ins.net)] += 1;
-                                count++;
-                                break;
+                                double tempmd = Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass));
+                                double tempnd = Math.Abs(outs.net - ins.net);
+                                double tempeuc = Math.Sqrt(Math.Pow(tempmd, 2) + Math.Pow(tempnd, 2));
+                                if (euc > tempeuc)
+                                {
+                                    dm = tempmd;
+                                    dn = tempnd;
+                                    euc = tempeuc;
+                                    temprec = ins;//
+                                }
+                                chk = 1;
                             }
                         }
+                        if (chk == 1)
+                        {
+                            masdiff.Add(dm);
+                            netdiff.Add(dn);
+                            maserr[Utilities.assignMasbin((outs.mass - temprec.mass) / (outs.mass + temprec.mass))] += 1;
+                            neterr[Utilities.assignNetbin(outs.net - temprec.net)] += 1;
+                            str += outs.id + "," + outs.mass + "," + outs.net + "," +
+                                   temprec.id + "," + temprec.mass + "," + temprec.net + "," +
+                                   temprec.protein + "," + temprec.site + "," + temprec.peptide +
+                                   "," + temprec.glycan + "," + temprec.type + "\n";//
+                            count++;
+                        }
                     }
-                    int left = (targ_buck[okey].Count - count) + (refc_buck[ikey].Count - count);
+                    ///*
+                    int left;
+                    if (targ_buck[okey].Count == 0)
+                    {
+                        left = (refc_buck[ikey].Count - count);
+                    }
+                    else if (refc_buck[ikey].Count == 0)
+                    {
+                        left = (targ_buck[okey].Count - count);
+                    }
+                    else if ((targ_buck[okey].Count - count) < (refc_buck[ikey].Count - count))
+                    {
+                        left = (targ_buck[okey].Count - count);
+                    }
+                    else
+                    {
+                        left = (refc_buck[ikey].Count - count);
+                    }
+                    //*/
+                    //int left = (targ_buck[okey].Count - count) + (refc_buck[ikey].Count - count);
                     for (int i = 0; i < left; i++)
                     {
                         masdiff.Add(GlobalVar.TOLMAS);
@@ -93,29 +154,64 @@ namespace GlycoMap_Align
         private void calculateScore()
         {
             string str="";
-            foreach (double okey in GlobalVar.KEYS)
+            foreach (double okey in GlobalVar.NETKEYS)
             {
                 List<double> temp = new List<double>();
-                foreach (double ikey in GlobalVar.KEYS)
+                foreach (double ikey in GlobalVar.NETKEYS)
                 {
                     int count = 0;
-                    double s = 0.0, dm = 0.0, dn = 0.0;
+                    double s = 0.0, dm = 0.0, dn = 0.0, cosine = 0.0;
                     foreach (GlycoRecord outs in targ_buck[okey])
                     {
+                        double euc = 100.0;
+                        int chk = 0;
                         foreach (GlycoRecord ins in refc_buck[ikey])
                         {
                             if (Utilities.check(outs.mass, ins.mass, outs.net, ins.net))
                             {
-                                
-                                dm = Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass));
-                                dn = Math.Abs(outs.net - ins.net);
-                                s -= Math.Log(masstddev * netstddev * 2 * Math.PI) - ((Math.Pow(dm, 2)) / (2 * Math.Pow(masstddev, 2))) - ((Math.Pow(dn, 2)) / (2 * Math.Pow(netstddev, 2)));
-                                count++;
-                                break;
+                                double tempmd = Math.Abs((outs.mass - ins.mass) / (outs.mass + ins.mass));
+                                double tempnd = Math.Abs(outs.net - ins.net);
+                                double tempeuc = Math.Sqrt(Math.Pow(tempmd, 2) + Math.Pow(tempnd, 2));
+                                //double tempcos = Utilities.correlation(outs.cidspec, ins.cidspec);
+                                if (euc > tempeuc)
+                                {
+                                    dm = tempmd;
+                                    dn = tempnd;
+                                    euc = tempeuc;
+                                    //cosine = tempcos;
+                                }
+                                chk = 1;
                             }
                         }
+                        if (chk == 1)
+                        {
+                            dm = Math.Abs(dm);
+                            dn = Math.Abs(dn);
+                            //s -= Math.Log(cosine) + Math.Log(masstddev * netstddev * 2 * Math.PI) - ((Math.Pow(dm, 2)) / (2 * Math.Pow(masstddev, 2))) - ((Math.Pow(dn, 2)) / (2 * Math.Pow(netstddev, 2)));
+                            s -= Math.Log(masstddev * netstddev * 2 * Math.PI) - ((Math.Pow(dm, 2)) / (2 * Math.Pow(masstddev, 2))) - ((Math.Pow(dn, 2)) / (2 * Math.Pow(netstddev, 2)));
+                            count++;
+                        }
                     }
-                    int left = (targ_buck[okey].Count - count) + (refc_buck[ikey].Count - count);
+                    ///*
+                    int left;
+                    if (targ_buck[okey].Count == 0)
+                    {
+                        left = (refc_buck[ikey].Count - count);
+                    }
+                    else if (refc_buck[ikey].Count == 0)
+                    {
+                        left = (targ_buck[okey].Count - count);
+                    }
+                    else if ((targ_buck[okey].Count - count) < (refc_buck[ikey].Count - count))
+                    {
+                        left = (targ_buck[okey].Count - count);
+                    }
+                    else
+                    {
+                        left = (refc_buck[ikey].Count - count);
+                    }
+                    //*/
+                    //int left = (targ_buck[okey].Count - count) + (refc_buck[ikey].Count - count);
                     for (int i = 0; i < left; i++)
                     {
                         dm = GlobalVar.TOLMAS;
@@ -142,7 +238,7 @@ namespace GlycoMap_Align
                     temp.Add(s);
                 }
                 str += "\n";
-                score.Add(temp);                
+                score.Add(temp);
             }
             for (int i = 0; i < score.Count; i++)
             {
@@ -160,32 +256,51 @@ namespace GlycoMap_Align
         private void calculateMatrix()
         {
             List<double> tempupd = new List<double>();
-            string str = "";
+            string str = "", str2 = "";
 
-            for (int i = 0; i <= GlobalVar.KEYS.Count; i++)
+            /*
+            for (int i = 0; i <= GlobalVar.NETKEYS.Count; i++)
             {
                 tempupd.Add(i * minscore);
+                str2 += (i * minscore).ToString() + ",";
+            }*/
+            for (int i = GlobalVar.NETKEYS.Count; i >= 0; i--)
+            {
+                tempupd.Add(i * minscore);
+                str2 += (i * minscore).ToString() + ",";
             }
+            str2 += "\n";
             matrix.Add(tempupd);
 
-            for (int i = 1; i <= GlobalVar.KEYS.Count; i++)
+            int k = GlobalVar.NETKEYS.Count - 1;
+            for (int i = 1; i <= GlobalVar.NETKEYS.Count; i++)
             {
-                tempupd = new List<double> { i * minscore };
+                //tempupd = new List<double> { i * minscore };
+                tempupd = new List<double> { k * minscore };
+                //str2 += (i * minscore).ToString() + ",";
+                str2 += (k * minscore).ToString() + ",";
+                k--;
                 List<int> temppos = new List<int>();
                 matrix.Add(tempupd);
-                for (int j = 1; j <= GlobalVar.KEYS.Count; j++)
+                for (int j = 1; j <= GlobalVar.NETKEYS.Count; j++)
                 {
-                    Path cur = Utilities.findMax(score[i - 1][j - 1], matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]);
+                    double d = matrix[i - 1][j - 1] + (2.1 * score[i - 1][j - 1]);
+                    double l = matrix[i][j - 1] + minscore;
+                    double u = matrix[i - 1][j] + minscore;
+                    Path cur = Utilities.findMax(d, l, u);
                     str += cur.pos.ToString() + ",";
+                    str2 += cur.upd.ToString() + ",";
                     tempupd.Add(cur.upd);
                     temppos.Add(cur.pos);
                 }
                 str += "\n";
-                System.IO.File.WriteAllText("traceback.csv", str);
+                str2 += "\n";
                 matrix.RemoveAt(i);
                 matrix.Insert(i, tempupd);
                 traceback.Add(temppos);
             }
+            System.IO.File.WriteAllText("traceback.csv", str);
+            System.IO.File.WriteAllText("matrix.csv", str2);
         }
 
         public Dictionary<double, int> getMaserr()
